@@ -10,7 +10,8 @@ interface TaskItemProps {
   onPauseTimer: (taskId: string) => void;
   onResetTimer: (taskId: string) => void;
   onSetTaskTimerStatus: (taskId: string, status: TimerStatus) => void; // For internal status changes like FINISHED
-  onDeleteTask: (taskId: string) => void;
+  onActualDeleteTask: (taskId: string) => void; // Renamed, actual function to remove from state
+  isNewlyAdded?: boolean; // Optional: for entry animation
   isDragging: boolean;
   onDragStart: (event: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void; // Only preventDefault
@@ -25,13 +26,35 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onPauseTimer,
   onResetTimer,
   onSetTaskTimerStatus,
-  onDeleteTask,
+  onActualDeleteTask,
+  isNewlyAdded = false, // Default to false
   isDragging,
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd
 }) => {
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(!isNewlyAdded); // Start invisible if newly added
+
+  useEffect(() => {
+    if (isNewlyAdded) {
+      // Trigger transition after a short delay to ensure initial styles (opacity-0) are applied
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 50); // Small delay for browser to paint initial state
+      return () => clearTimeout(timer);
+    }
+  }, [isNewlyAdded]);
+
+  useEffect(() => {
+    if (isDeleting) {
+      const timer = setTimeout(() => {
+        onActualDeleteTask(task.id);
+      }, 300); // Animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [isDeleting, task.id, onActualDeleteTask]);
   
   useEffect(() => {
     let logicIntervalId: number | undefined = undefined;
@@ -72,29 +95,43 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       onDragOver={onDragOver}
       onDrop={handleDrop}
       onDragEnd={onDragEnd}
-      className={`flex items-center justify-between p-4 mb-3 rounded-lg shadow-md transition-all duration-150
-                  ${isDragging ? 'opacity-50 ring-2 ring-primary-500' : ''}
-                  ${task.isCompleted ? 'bg-green-50 dark:bg-green-900/50' : 'bg-white dark:bg-gray-800'}
+      style={{ 
+        maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
+        paddingTop: isDeleting ? '0px' : undefined,
+        paddingBottom: isDeleting ? '0px' : undefined,
+        marginBottom: isDeleting ? '0px' : undefined,
+        boxShadow: isDeleting ? 'none' : undefined,
+      }}
+      className={`group flex items-center justify-between rounded-lg shadow-md
+                  hover:shadow-lg 
+                  ${task.isCompleted ? 'bg-green-50 dark:bg-green-900/50' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60'}
+                  ${isDragging ? 'opacity-75 ring-2 ring-primary-500 motion-safe:scale-105' : 'motion-safe:scale-100'}
+                  ${isVisible && !isDeleting ? 'opacity-100 motion-safe:translate-y-0 motion-safe:scale-100' : 'opacity-0 motion-safe:-translate-y-5 motion-safe:scale-95'}
+                  ${isDeleting ? 'motion-safe:opacity-0 motion-safe:scale-90 overflow-hidden !p-0 !mb-0' : ''}
+                  motion-safe:transition-all motion-safe:duration-300 ease-in-out
+                  motion-reduce:transition-none
+                  p-4 mb-3 
                   `}
     >
-      <div className="flex items-center flex-grow">
+      {/* Inner container to prevent content from collapsing immediately due to parent's padding/margin changes during delete animation */}
+      <div className={`flex items-center flex-grow ${isDeleting ? 'motion-safe:opacity-0' : 'opacity-100'} motion-safe:transition-opacity motion-safe:duration-150`}>
         <button
             onClick={() => {}} // Actual drag is handled by draggable attribute
-            className="cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="group/handle cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
             aria-label="Drag to reorder task"
           >
-            <Bars3Icon />
+            <Bars3Icon className="transition-transform duration-150 group-hover/handle:scale-110" />
         </button>
         <button
           onClick={() => onToggleComplete(task.id)}
-          className={`mr-3 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-gray-800 
+          className={`mr-3 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-gray-800 transition-colors duration-200
                       ${task.isCompleted ? 'text-green-600 hover:text-green-700 focus:ring-green-500' 
                                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:ring-primary-500'}`}
           aria-label={task.isCompleted ? "Mark task as incomplete" : "Mark task as complete"}
         >
-          {task.isCompleted ? <CheckCircleIcon className="w-6 h-6" /> : <CircleIcon className="w-6 h-6" />}
+          {task.isCompleted ? <CheckCircleIcon className="w-6 h-6 transition-all duration-300 ease-in-out transform" /> : <CircleIcon className="w-6 h-6 transition-all duration-300 ease-in-out transform" />}
         </button>
-        <span className={`flex-grow ${task.isCompleted ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-100'}`}>
+        <span className={`flex-grow transition-all duration-300 ${task.isCompleted ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-100'}`}>
           {task.text}
         </span>
       </div>
@@ -130,12 +167,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           </>
         )}
          <button
-            onClick={() => onDeleteTask(task.id)}
+            onClick={() => setIsDeleting(true)} // Initiate deletion animation
             className="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-full hover:bg-red-100 dark:hover:bg-red-700/50 focus:outline-none focus:ring-2 focus:ring-red-500"
             aria-label="Delete task"
+            disabled={isDeleting} // Disable button during animation
           >
             <TrashIcon />
           </button>
+      </div>
       </div>
     </div>
   );
