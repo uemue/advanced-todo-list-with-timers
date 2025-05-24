@@ -33,7 +33,10 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({ task }) => {
     if (task.timerStatus === TimerStatus.PAUSED) return task.accumulatedTime;
     // RUNNING or FINISHED (overtime)
     if (task.timerStartTime) {
-      return task.accumulatedTime + (currentTime - task.timerStartTime);
+      // Ensure the difference is not negative, which can happen due to slight async delay
+      // between setting timerStartTime and rendering with currentTime.
+      const currentIntervalElapsedTime = Math.max(0, currentTime - task.timerStartTime);
+      return task.accumulatedTime + currentIntervalElapsedTime;
     }
     // Fallback, though timerStartTime should be set if running/finished
     return task.accumulatedTime; 
