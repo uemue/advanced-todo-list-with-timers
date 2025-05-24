@@ -1,0 +1,5 @@
+{
+  "name": "Advanced Todo List with Timers",
+  "description": "A Todo list application where each task has an estimated duration, a countdown timer that notifies on completion and then counts overtime, and support for drag-and-drop reordering.",
+  "requestFramePermissions": []
+}
