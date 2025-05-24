@@ -82,6 +82,18 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({ task }) => {
     timerColor = "text-green-600 dark:text-green-400";
   }
 
+  const isRunning = task.timerStatus === TimerStatus.RUNNING;
 
-  return <span className={`font-mono text-lg min-w-[70px] text-right ${timerColor}`}>{displayTime}</span>;
+  return (
+    <span 
+      className={`
+        font-mono text-lg min-w-[70px] text-right 
+        ${timerColor} 
+        transition-colors duration-300 ease-in-out
+        ${isRunning ? 'motion-safe:animate-pulse' : ''}
+      `}
+    >
+      {displayTime}
+    </span>
+  );
 };
