@@ -88,8 +88,17 @@ export const TaskList: React.FC<TaskListProps> = ({
     const draggedTaskId = event.dataTransfer.getData('text/plain');
     
     if (draggedTaskId && dropTargetIndex !== null) {
-        const targetTask = tasks[dropTargetIndex];
-        // If dropTargetIndex is tasks.length, targetTask will be undefined.
+        // Find the dragged item index to adjust dropTargetIndex if needed
+        const draggedItemIndex = tasks.findIndex(task => task.id === draggedTaskId);
+        
+        // Adjust dropTargetIndex if we're dropping after the dragged item's current position
+        let adjustedTargetIndex = dropTargetIndex;
+        if (draggedItemIndex !== -1 && draggedItemIndex < dropTargetIndex) {
+            adjustedTargetIndex = dropTargetIndex - 1;
+        }
+        
+        const targetTask = tasks[adjustedTargetIndex];
+        // If adjustedTargetIndex is tasks.length or beyond, targetTask will be undefined.
         // This means dropping at the end. onReorderTasks needs to handle targetId: null
         onReorderTasks(draggedTaskId, targetTask?.id ?? null);
     }

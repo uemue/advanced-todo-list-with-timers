@@ -132,28 +132,30 @@ const App: React.FC = () => {
 
   const reorderTasks = (draggedId: string, targetId: string | null) => {
     setTasks(prevTasks => {
-      const newTasks = [...prevTasks];
-      const draggedItemIndex = newTasks.findIndex(task => task.id === draggedId);
+      const draggedItemIndex = prevTasks.findIndex(task => task.id === draggedId);
 
       if (draggedItemIndex === -1) return prevTasks; // Dragged item not found
 
-      const [draggedItem] = newTasks.splice(draggedItemIndex, 1); // Remove dragged item
-
+      const draggedItem = prevTasks[draggedItemIndex];
+      
       if (targetId === null) {
-        // If targetId is null, append to the end of the list
-        newTasks.push(draggedItem);
+        // If targetId is null, move to the end of the list
+        const newTasks = prevTasks.filter(task => task.id !== draggedId);
+        return [...newTasks, draggedItem];
       } else {
         // If targetId is provided, find its index and insert before it
-        const targetItemIndex = newTasks.findIndex(task => task.id === targetId);
+        const targetItemIndex = prevTasks.findIndex(task => task.id === targetId);
         if (targetItemIndex === -1) { 
-          // Target item not found (should not happen if logic is correct, but good to handle)
-          // Fallback: add to the end or put it back to its original position
-          newTasks.push(draggedItem); // Or you could re-insert at draggedItemIndex if that's safer
-          return newTasks; // Or handle error
+          // Target item not found, fallback to end
+          const newTasks = prevTasks.filter(task => task.id !== draggedId);
+          return [...newTasks, draggedItem];
         }
-        newTasks.splice(targetItemIndex, 0, draggedItem); // Insert before target
+        
+        // Create new array with item moved to target position
+        const newTasks = prevTasks.filter(task => task.id !== draggedId);
+        newTasks.splice(targetItemIndex > draggedItemIndex ? targetItemIndex - 1 : targetItemIndex, 0, draggedItem);
+        return newTasks;
       }
-      return newTasks;
     });
   };
 
