@@ -53,6 +53,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, taskId: string) => {
+    console.log('handleDragStart called with taskId:', taskId);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', taskId);
     setDraggingItemId(taskId);
@@ -78,27 +79,24 @@ export const TaskList: React.FC<TaskListProps> = ({
     
     // Optimization: only update state if the index actually changes
     if (newDropIndex !== dropTargetIndex) {
+        console.log('Setting dropTargetIndex to:', newDropIndex, 'for taskId:', taskId);
         setDropTargetIndex(newDropIndex);
     }
   };
   
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>, _targetTaskIdNotUsed: string) => {
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    console.log('handleDrop called with dropTargetIndex:', dropTargetIndex);
     event.preventDefault();
     event.stopPropagation();
     const draggedTaskId = event.dataTransfer.getData('text/plain');
+    console.log('draggedTaskId:', draggedTaskId);
     
     if (draggedTaskId && dropTargetIndex !== null) {
-        // Find the dragged item index to adjust dropTargetIndex if needed
-        const draggedItemIndex = tasks.findIndex(task => task.id === draggedTaskId);
+        console.log('dropTargetIndex:', dropTargetIndex);
         
-        // Adjust dropTargetIndex if we're dropping after the dragged item's current position
-        let adjustedTargetIndex = dropTargetIndex;
-        if (draggedItemIndex !== -1 && draggedItemIndex < dropTargetIndex) {
-            adjustedTargetIndex = dropTargetIndex - 1;
-        }
-        
-        const targetTask = tasks[adjustedTargetIndex];
-        // If adjustedTargetIndex is tasks.length or beyond, targetTask will be undefined.
+        const targetTask = tasks[dropTargetIndex];
+        console.log('targetTask:', targetTask?.id ?? 'null');
+        // If dropTargetIndex is tasks.length or beyond, targetTask will be undefined.
         // This means dropping at the end. onReorderTasks needs to handle targetId: null
         onReorderTasks(draggedTaskId, targetTask?.id ?? null);
     }
@@ -153,10 +151,6 @@ export const TaskList: React.FC<TaskListProps> = ({
         onDragStart={(e) => handleDragStart(e, task.id)}
         // Pass the task-specific dragOver handler
         onDragOver={(e) => handleTaskItemDragOver(e, task.id)} 
-        // Drop is now more generic, but TaskItem still needs to call it.
-        // The second argument (targetTaskId) is not strictly needed by this new handleDrop,
-        // but TaskItem's onDrop prop expects it.
-        onDrop={(e) => handleDrop(e, task.id)} 
         onDragEnd={handleDragEnd}
         // onUpdateDropTarget is not needed if TaskItem's onDragOver directly calls logic
       />
@@ -175,19 +169,22 @@ export const TaskList: React.FC<TaskListProps> = ({
 
 
   return (
-    <div className="mt-6" onDragLeave={handleDragLeaveList} onDragOver={(e) => {
-        // This onDragOver on the list itself is to handle dragging over empty space
-        // or to set a default drop index (e.g., end of list) if not over any item.
-        e.preventDefault();
-        if (tasks.length === 0 && draggingItemId) {
-            setDropTargetIndex(0); // Allow dropping into an empty list
-        }
-        // Potentially, if not over any specific item but over the list,
-        // you could set dropTargetIndex to tasks.length (to drop at the end).
-        // However, this might conflict with handleTaskItemDragOver.
-        // The current logic relies on handleTaskItemDragOver for precise positioning.
-        // handleDragLeaveList will clear it if we drag out.
-    }}>
+    <div className="mt-6" 
+         onDragLeave={handleDragLeaveList} 
+         onDragOver={(e) => {
+            // This onDragOver on the list itself is to handle dragging over empty space
+            // or to set a default drop index (e.g., end of list) if not over any item.
+            e.preventDefault();
+            if (tasks.length === 0 && draggingItemId) {
+                setDropTargetIndex(0); // Allow dropping into an empty list
+            }
+            // Potentially, if not over any specific item but over the list,
+            // you could set dropTargetIndex to tasks.length (to drop at the end).
+            // However, this might conflict with handleTaskItemDragOver.
+            // The current logic relies on handleTaskItemDragOver for precise positioning.
+            // handleDragLeaveList will clear it if we drag out.
+         }}
+         onDrop={handleDrop}>
       {itemsWithPlaceholder}
     </div>
   );

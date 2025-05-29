@@ -47,8 +47,21 @@ const App: React.FC = () => {
   };
 
   const addTask = (text: string, durationMinutes: number) => {
+    // Fallback UUID generation for environments without crypto.randomUUID
+    const generateId = () => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      // Fallback implementation
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
     const newTask: Task = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       text,
       estimatedDuration: durationMinutes * 60, // Convert minutes to seconds
       isCompleted: false,
@@ -131,29 +144,39 @@ const App: React.FC = () => {
 
 
   const reorderTasks = (draggedId: string, targetId: string | null) => {
+    console.log('reorderTasks called:', { draggedId, targetId });
     setTasks(prevTasks => {
       const draggedItemIndex = prevTasks.findIndex(task => task.id === draggedId);
+      console.log('Previous tasks:', prevTasks.map(t => ({ id: t.id, text: t.text })));
+      console.log('draggedItemIndex:', draggedItemIndex);
 
       if (draggedItemIndex === -1) return prevTasks; // Dragged item not found
 
       const draggedItem = prevTasks[draggedItemIndex];
+      const newTasks = [...prevTasks];
+      
+      // Remove the dragged item
+      newTasks.splice(draggedItemIndex, 1);
       
       if (targetId === null) {
         // If targetId is null, move to the end of the list
-        const newTasks = prevTasks.filter(task => task.id !== draggedId);
-        return [...newTasks, draggedItem];
+        newTasks.push(draggedItem);
+        console.log('Moving to end, new order:', newTasks.map(t => ({ id: t.id, text: t.text })));
+        return newTasks;
       } else {
-        // If targetId is provided, find its index and insert before it
-        const targetItemIndex = prevTasks.findIndex(task => task.id === targetId);
+        // If targetId is provided, find its index in the new array and insert before it
+        const targetItemIndex = newTasks.findIndex(task => task.id === targetId);
+        console.log('targetItemIndex in new array:', targetItemIndex);
         if (targetItemIndex === -1) { 
           // Target item not found, fallback to end
-          const newTasks = prevTasks.filter(task => task.id !== draggedId);
-          return [...newTasks, draggedItem];
+          newTasks.push(draggedItem);
+          console.log('Target not found, moving to end:', newTasks.map(t => ({ id: t.id, text: t.text })));
+          return newTasks;
         }
         
-        // Create new array with item moved to target position
-        const newTasks = prevTasks.filter(task => task.id !== draggedId);
-        newTasks.splice(targetItemIndex > draggedItemIndex ? targetItemIndex - 1 : targetItemIndex, 0, draggedItem);
+        // Insert before target
+        newTasks.splice(targetItemIndex, 0, draggedItem);
+        console.log('New task order:', newTasks.map(t => ({ id: t.id, text: t.text })));
         return newTasks;
       }
     });

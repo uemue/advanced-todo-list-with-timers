@@ -23,7 +23,6 @@ interface TaskItemProps {
   isDragging: boolean;
   onDragStart: (event: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void; // Only preventDefault
-  onDrop: (event: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   onDragEnd: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
@@ -39,7 +38,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   isDragging,
   onDragStart,
   onDragOver,
-  onDrop,
   onDragEnd,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -98,21 +96,20 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onSetTaskTimerStatus,
   ]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    onDragStart(e, task.id);
+  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
+    console.log('TaskItem handleDragStart for task:', task.id);
+    onDragStart(e as any, task.id); // Cast to match expected type
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    onDrop(e, task.id);
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    console.log('TaskItem handleDragOver for task:', task.id);
+    e.preventDefault(); // This is crucial for drop to work
+    onDragOver(e);
   };
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={onDragOver}
-      onDrop={handleDrop}
-      onDragEnd={onDragEnd}
+      onDragOver={handleDragOver}
       style={{
         maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
         paddingTop: isDeleting ? '0px' : undefined,
@@ -154,7 +151,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         } motion-safe:transition-opacity motion-safe:duration-150`}
       >
         <button
-          onClick={() => {}} // Actual drag is handled by draggable attribute
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={(e) => onDragEnd(e as any)}
+          onClick={(e) => e.preventDefault()} // Prevent click when dragging
           className='group/handle cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400'
           aria-label='Drag to reorder task'
         >
