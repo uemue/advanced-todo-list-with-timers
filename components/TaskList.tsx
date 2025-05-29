@@ -56,6 +56,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     console.log('handleDragStart called with taskId:', taskId);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', taskId);
+    // Set custom drag image
+    if (event.currentTarget) { // Check if currentTarget is available
+      event.dataTransfer.setDragImage(event.currentTarget, 10, 10);
+    }
     setDraggingItemId(taskId);
     // setDropTargetIndex(null); // Clear any previous placeholder
   };

@@ -96,9 +96,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onSetTaskTimerStatus,
   ]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     console.log('TaskItem handleDragStart for task:', task.id);
-    onDragStart(e as any, task.id); // Cast to match expected type
+    onDragStart(e, task.id); // Cast removed, type updated
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -109,6 +109,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   return (
     <div
+      draggable // Added draggable attribute
+      onDragStart={handleDragStart} // Added onDragStart handler
+      onDragEnd={(e) => onDragEnd(e as any)} // Added onDragEnd handler
       onDragOver={handleDragOver}
       style={{
         maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
@@ -126,7 +129,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   }
                   ${
                     isDragging
-                      ? 'opacity-75 ring-2 ring-primary-500 motion-safe:scale-105'
+                      ? 'opacity-5' // Or 'opacity-0'
+                      // Removed: ring-2 ring-primary-500 motion-safe:scale-105
                       : 'motion-safe:scale-100'
                   }
                   ${
@@ -151,10 +155,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         } motion-safe:transition-opacity motion-safe:duration-150`}
       >
         <button
-          draggable
-          onDragStart={handleDragStart}
-          onDragEnd={(e) => onDragEnd(e as any)}
-          onClick={(e) => e.preventDefault()} // Prevent click when dragging
+          // draggable removed
+          // onDragStart removed
+          // onDragEnd removed
+          // onClick removed
           className='group/handle cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400'
           aria-label='Drag to reorder task'
         >
