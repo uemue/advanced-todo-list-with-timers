@@ -2,6 +2,24 @@
 import React from 'react';
 import { Task, TimerStatus } from '../types';
 import { TaskItem } from './TaskItem';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragOverEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  // arrayMove, // Assuming App.tsx handles reordering logic
+} from '@dnd-kit/sortable';
 
 interface TaskListProps {
   tasks: Task[];
@@ -10,13 +28,11 @@ interface TaskListProps {
   onPauseTimer: (taskId: string) => void;
   onResetTimer: (taskId: string) => void;
   onSetTaskTimerStatus: (taskId: string, status: TimerStatus) => void;
-  onActualDeleteTask: (taskId: string) => void; // Renamed from onDeleteTask for clarity
-  onReorderTasks: (draggedId: string, targetId: string | null) => void; // targetId can be null for dropping at the end
+  onActualDeleteTask: (taskId: string) => void;
+  onReorderTasks: (draggedId: string, targetId: string) => void; // targetId will not be null with dnd-kit logic here
   draggingItemId: string | null;
   setDraggingItemId: (id: string | null) => void;
 }
-
-const PLACEHOLDER_ID = "drop-placeholder";
 
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
@@ -25,12 +41,11 @@ export const TaskList: React.FC<TaskListProps> = ({
   onPauseTimer,
   onResetTimer,
   onSetTaskTimerStatus,
-  onActualDeleteTask, // Renamed
+  onActualDeleteTask,
   onReorderTasks,
   draggingItemId,
-  setDraggingItemId
+  setDraggingItemId,
 }) => {
-  const [dropTargetIndex, setDropTargetIndex] = React.useState<number | null>(null);
   const [newlyAddedTaskIds, setNewlyAddedTaskIds] = React.useState<string[]>([]);
   const prevTasksRef = React.useRef<Task[]>(tasks);
 
@@ -40,146 +55,93 @@ export const TaskList: React.FC<TaskListProps> = ({
       const newIds = newTasks.map(t => t.id);
       setNewlyAddedTaskIds(currentIds => [...currentIds, ...newIds]);
       newIds.forEach(id => {
-        // Duration should be slightly longer than animation
         const timer = setTimeout(() => {
           setNewlyAddedTaskIds(currentIds => currentIds.filter(currentId => currentId !== id));
-        }, 350); // Animation duration is 300ms
-        // Cleanup timeout if component unmounts or tasks change causing re-run
+        }, 350);
         return () => clearTimeout(timer);
       });
     }
     prevTasksRef.current = tasks;
   }, [tasks]);
 
-
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, taskId: string) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', taskId);
-    setDraggingItemId(taskId);
-    // setDropTargetIndex(null); // Clear any previous placeholder
-  };
-
-  // This handleDragOver is for the TaskItem itself.
-  const handleTaskItemDragOver = (event: React.DragEvent<HTMLDivElement>, taskId: string) => {
-    event.preventDefault();
-    event.stopPropagation(); // Prevent bubbling to the list's dragOver if needed for specific logic
-
-    if (!draggingItemId) return;
-
-    const targetElement = event.currentTarget as HTMLDivElement;
-    const rect = targetElement.getBoundingClientRect();
-    const verticalMidpoint = rect.top + rect.height / 2;
-    const isTopHalf = event.clientY < verticalMidpoint;
-
-    const overItemIndex = tasks.findIndex(t => t.id === taskId);
-    if (overItemIndex === -1) return;
-
-    const newDropIndex = isTopHalf ? overItemIndex : overItemIndex + 1;
-    
-    // Optimization: only update state if the index actually changes
-    if (newDropIndex !== dropTargetIndex) {
-        setDropTargetIndex(newDropIndex);
-    }
-  };
-  
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>, _targetTaskIdNotUsed: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const draggedTaskId = event.dataTransfer.getData('text/plain');
-    
-    if (draggedTaskId && dropTargetIndex !== null) {
-        const targetTask = tasks[dropTargetIndex];
-        // If dropTargetIndex is tasks.length, targetTask will be undefined.
-        // This means dropping at the end. onReorderTasks needs to handle targetId: null
-        onReorderTasks(draggedTaskId, targetTask?.id ?? null);
-    }
-    setDraggingItemId(null);
-    setDropTargetIndex(null);
-  };
-
-  const handleDragEnd = (_event: React.DragEvent<HTMLDivElement>) => {
-    setDraggingItemId(null);
-    setDropTargetIndex(null);
-  };
-
-  const handleDragLeaveList = (event: React.DragEvent<HTMLDivElement>) => {
-    // Check if the mouse is leaving the list container towards an unrelated element
-    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-        setDropTargetIndex(null);
-    }
-  };
-  
-  const Placeholder = () => (
-    <div 
-      key={PLACEHOLDER_ID} 
-      className="h-16 border-2 border-dashed border-primary-500 dark:border-primary-400 rounded-lg my-2 opacity-75 transition-all duration-150"
-      aria-hidden="true"
-    ></div>
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
-  if (tasks.length === 0 && !draggingItemId) { // Also check draggingItemId to show placeholder in empty list
+  const handleDragStartInternal = (event: DragStartEvent) => {
+    setDraggingItemId(event.active.id as string);
+  };
+
+  const handleDragOverInternal = (event: DragOverEvent) => {
+    // The `SortableContext` and `useSortable` (in TaskItem) typically handle visual cues.
+    // This handler can be used for more complex scenarios if needed.
+    // For now, we might not need specific logic here.
+    // console.log("DragOver: ", event.active.id, event.over?.id);
+  };
+
+  const handleDragEndInternal = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorderTasks(active.id as string, over.id as string);
+    }
+    setDraggingItemId(null);
+  };
+
+  if (tasks.length === 0) {
     return <p className="text-center text-gray-500 dark:text-gray-400 mt-8">No tasks yet. Add one above!</p>;
   }
 
-  // Build the list with potential placeholder
-  const itemsWithPlaceholder: React.ReactNode[] = [];
-  tasks.forEach((task, index) => {
-    if (dropTargetIndex === index) {
-      itemsWithPlaceholder.push(<Placeholder key={`${PLACEHOLDER_ID}-${index}`} />);
-    }
-    itemsWithPlaceholder.push(
-      <TaskItem
-        key={task.id}
-        task={task}
-        onToggleComplete={onToggleComplete}
-        onStartTimer={onStartTimer}
-        onPauseTimer={onPauseTimer}
-        onResetTimer={onResetTimer}
-        onSetTaskTimerStatus={onSetTaskTimerStatus}
-        // onDeleteTask prop of TaskItem will trigger its internal animation sequence
-        // onActualDeleteTask is the function from App.tsx to remove from state
-        onActualDeleteTask={onActualDeleteTask} 
-        isNewlyAdded={newlyAddedTaskIds.includes(task.id)}
-        isDragging={draggingItemId === task.id}
-        onDragStart={(e) => handleDragStart(e, task.id)}
-        // Pass the task-specific dragOver handler
-        onDragOver={(e) => handleTaskItemDragOver(e, task.id)} 
-        // Drop is now more generic, but TaskItem still needs to call it.
-        // The second argument (targetTaskId) is not strictly needed by this new handleDrop,
-        // but TaskItem's onDrop prop expects it.
-        onDrop={(e) => handleDrop(e, task.id)} 
-        onDragEnd={handleDragEnd}
-        // onUpdateDropTarget is not needed if TaskItem's onDragOver directly calls logic
-      />
-    );
-  });
-
-  // If dragging to the end of the list
-  if (dropTargetIndex === tasks.length) {
-    itemsWithPlaceholder.push(<Placeholder key={`${PLACEHOLDER_ID}-end`} />);
-  }
-  
-  // Handle empty list while dragging
-  if (tasks.length === 0 && draggingItemId && dropTargetIndex === 0) {
-     itemsWithPlaceholder.push(<Placeholder key={`${PLACEHOLDER_ID}-empty`} />);
-  }
-
+  const draggedTask = tasks.find(t => t.id === draggingItemId);
 
   return (
-    <div className="mt-6" onDragLeave={handleDragLeaveList} onDragOver={(e) => {
-        // This onDragOver on the list itself is to handle dragging over empty space
-        // or to set a default drop index (e.g., end of list) if not over any item.
-        e.preventDefault();
-        if (tasks.length === 0 && draggingItemId) {
-            setDropTargetIndex(0); // Allow dropping into an empty list
-        }
-        // Potentially, if not over any specific item but over the list,
-        // you could set dropTargetIndex to tasks.length (to drop at the end).
-        // However, this might conflict with handleTaskItemDragOver.
-        // The current logic relies on handleTaskItemDragOver for precise positioning.
-        // handleDragLeaveList will clear it if we drag out.
-    }}>
-      {itemsWithPlaceholder}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStartInternal}
+      onDragOver={handleDragOverInternal}
+      onDragEnd={handleDragEndInternal}
+    >
+      <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+        <div className="mt-6">
+          {tasks.map(task => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggleComplete={onToggleComplete}
+              onStartTimer={onStartTimer}
+              onPauseTimer={onPauseTimer}
+              onResetTimer={onResetTimer}
+              onSetTaskTimerStatus={onSetTaskTimerStatus}
+              onActualDeleteTask={onActualDeleteTask}
+              isNewlyAdded={newlyAddedTaskIds.includes(task.id)}
+              // The following props related to HTML5 DND are no longer needed by TaskItem directly for sorting
+              // isDragging={draggingItemId === task.id} 
+              // onDragStart, onDragOver, onDrop, onDragEnd will be handled by useSortable in TaskItem
+              // For now, we pass isDragging for potential overlay styling or other non-dnd-kit uses if any.
+              isDragging={draggingItemId === task.id} 
+            />
+          ))}
+        </div>
+      </SortableContext>
+      <DragOverlay>
+        {draggingItemId && draggedTask ? (
+          <TaskItem
+            task={draggedTask}
+            onToggleComplete={onToggleComplete} // These might not be interactive in overlay
+            onStartTimer={onStartTimer}
+            onPauseTimer={onPauseTimer}
+            onResetTimer={onResetTimer}
+            onSetTaskTimerStatus={onSetTaskTimerStatus}
+            onActualDeleteTask={onActualDeleteTask}
+            isNewlyAdded={false} // Not newly added when just being dragged
+            isDragging={true} // It is being dragged
+            // The overlay TaskItem doesn't need dnd event handlers itself
+          />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };

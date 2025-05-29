@@ -10,6 +10,8 @@ import {
   Bars3Icon,
   TrashIcon,
 } from './icons';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TaskItemProps {
   task: Task;
@@ -17,14 +19,10 @@ interface TaskItemProps {
   onStartTimer: (taskId: string) => void;
   onPauseTimer: (taskId: string) => void;
   onResetTimer: (taskId: string) => void;
-  onSetTaskTimerStatus: (taskId: string, status: TimerStatus) => void; // For internal status changes like FINISHED
-  onActualDeleteTask: (taskId: string) => void; // Renamed, actual function to remove from state
-  isNewlyAdded?: boolean; // Optional: for entry animation
-  isDragging: boolean;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>, taskId: string) => void;
-  onDragOver: (event: React.DragEvent<HTMLDivElement>) => void; // Only preventDefault
-  onDrop: (event: React.DragEvent<HTMLDivElement>, taskId: string) => void;
-  onDragEnd: (event: React.DragEvent<HTMLDivElement>) => void;
+  onSetTaskTimerStatus: (taskId: string, status: TimerStatus) => void;
+  onActualDeleteTask: (taskId: string) => void;
+  isNewlyAdded?: boolean;
+  isDragging?: boolean; // This prop is passed by DragOverlay, not for sortable item itself
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -35,22 +33,29 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onResetTimer,
   onSetTaskTimerStatus,
   onActualDeleteTask,
-  isNewlyAdded = false, // Default to false
-  isDragging,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
+  isNewlyAdded = false,
+  isDragging: isOverlayDragging = false, // isDragging from props is for when item is in DragOverlay
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const [isVisible, setIsVisible] = React.useState(!isNewlyAdded); // Start invisible if newly added
+  const [isVisible, setIsVisible] = React.useState(!isNewlyAdded);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: dndIsDragging, // isDragging state from useSortable
+  } = useSortable({ id: task.id });
+
+  // Determine effective dragging state: true if dnd-kit says so, or if it's an overlay item being dragged
+  const effectiveIsDragging = dndIsDragging || isOverlayDragging;
 
   useEffect(() => {
     if (isNewlyAdded) {
-      // Trigger transition after a short delay to ensure initial styles (opacity-0) are applied
       const timer = setTimeout(() => {
         setIsVisible(true);
-      }, 50); // Small delay for browser to paint initial state
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [isNewlyAdded]);
@@ -59,7 +64,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     if (isDeleting) {
       const timer = setTimeout(() => {
         onActualDeleteTask(task.id);
-      }, 300); // Animation duration
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [isDeleting, task.id, onActualDeleteTask]);
@@ -78,17 +83,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         );
 
         if (effectiveElapsedTimeInSeconds >= task.estimatedDuration) {
-          // onSetTaskTimerStatus will handle the notification trigger in App.tsx
           onSetTaskTimerStatus(task.id, TimerStatus.FINISHED);
-          if (logicIntervalId) clearInterval(logicIntervalId); // Stop checking once finished
+          if (logicIntervalId) clearInterval(logicIntervalId);
         }
-      }, 250); // Check 4 times a second for responsiveness
+      }, 250);
     }
 
     return () => {
       if (logicIntervalId) clearInterval(logicIntervalId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     task.timerStatus,
     task.timerStartTime,
@@ -98,28 +101,22 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onSetTaskTimerStatus,
   ]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    onDragStart(e, task.id);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    onDrop(e, task.id);
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || 'transform 0.2s ease, opacity 0.2s ease', // Provide a default transition
+    maxHeight: isDeleting ? '0px' : '200px',
+    paddingTop: isDeleting ? '0px' : undefined,
+    paddingBottom: isDeleting ? '0px' : undefined,
+    marginBottom: isDeleting ? '0px' : undefined,
+    boxShadow: isDeleting ? 'none' : undefined,
+    // When dndIsDragging is true (item is being sorted), we want it to be visible, not affected by isVisible for entry animation
+    opacity: dndIsDragging ? 1 : (isVisible && !isDeleting ? 1 : 0), 
   };
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={onDragOver}
-      onDrop={handleDrop}
-      onDragEnd={onDragEnd}
-      style={{
-        maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
-        paddingTop: isDeleting ? '0px' : undefined,
-        paddingBottom: isDeleting ? '0px' : undefined,
-        marginBottom: isDeleting ? '0px' : undefined,
-        boxShadow: isDeleting ? 'none' : undefined,
-      }}
+      ref={setNodeRef}
+      style={style}
       className={`group flex items-center justify-between rounded-lg shadow-md
                   hover:shadow-lg 
                   ${
@@ -128,14 +125,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60'
                   }
                   ${
-                    isDragging
-                      ? 'opacity-75 ring-2 ring-primary-500 motion-safe:scale-105'
+                    effectiveIsDragging // Use combined dragging state for visual cues
+                      ? 'opacity-75 ring-2 ring-primary-500 motion-safe:scale-105 z-10' // Add z-index
                       : 'motion-safe:scale-100'
                   }
                   ${
-                    isVisible && !isDeleting
-                      ? 'opacity-100 motion-safe:translate-y-0 motion-safe:scale-100'
-                      : 'opacity-0 motion-safe:-translate-y-5 motion-safe:scale-95'
+                    // Apply entry/exit animations only if not being dragged by dnd-kit
+                    !dndIsDragging && (isVisible && !isDeleting
+                      ? 'motion-safe:translate-y-0 motion-safe:scale-100'
+                      : 'motion-safe:-translate-y-5 motion-safe:scale-95')
                   }
                   ${
                     isDeleting
@@ -147,16 +145,17 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   p-4 mb-3 
                   `}
     >
-      {/* Inner container to prevent content from collapsing immediately due to parent's padding/margin changes during delete animation */}
       <div
         className={`flex items-center flex-grow ${
           isDeleting ? 'motion-safe:opacity-0' : 'opacity-100'
         } motion-safe:transition-opacity motion-safe:duration-150`}
       >
         <button
-          onClick={() => {}} // Actual drag is handled by draggable attribute
+          {...attributes}
+          {...listeners}
           className='group/handle cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400'
           aria-label='Drag to reorder task'
+          // No onClick needed here as dnd-kit listeners handle drag initiation
         >
           <Bars3Icon className='transition-transform duration-150 group-hover/handle:scale-110' />
         </button>
@@ -223,10 +222,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           </>
         )}
         <button
-          onClick={() => setIsDeleting(true)} // Initiate deletion animation
+          onClick={() => setIsDeleting(true)}
           className='p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-full hover:bg-red-100 dark:hover:bg-red-700/50 focus:outline-none focus:ring-2 focus:ring-red-500'
           aria-label='Delete task'
-          disabled={isDeleting} // Disable button during animation
+          disabled={isDeleting}
         >
           <TrashIcon />
         </button>

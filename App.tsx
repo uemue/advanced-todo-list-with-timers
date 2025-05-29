@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { arrayMove } from '@dnd-kit/utilities'; // Changed import source
 import { Task, TimerStatus, NotificationMessage } from './types';
 import { AddTaskForm } from './components/AddTaskForm';
 import { TaskList } from './components/TaskList';
@@ -115,11 +116,9 @@ const App: React.FC = () => {
     setTasks(prevTasks =>
       prevTasks.map(t => {
         if (t.id === taskId) {
-          if (t.timerStatus === newStatus) return t; // No change if status is already the new status
+          if (t.timerStatus === newStatus) return t; 
 
           if (t.timerStatus === TimerStatus.RUNNING && newStatus === TimerStatus.FINISHED) {
-            // Only show notification if it's a true transition to FINISHED from RUNNING
-             // And if not already FINISHED (to avoid re-notifying if logic runs multiple times)
             showAppNotification(`Task "${t.text}" time is up! Now tracking overtime.`, t.id);
           }
           return { ...t, timerStatus: newStatus };
@@ -129,34 +128,20 @@ const App: React.FC = () => {
     );
   }, []);
 
+  const reorderTasks = (draggedId: string, targetId: string) => {
+    setTasks((prevTasks) => {
+      const oldIndex = prevTasks.findIndex(task => task.id === draggedId);
+      const newIndex = prevTasks.findIndex(task => task.id === targetId);
 
-  const reorderTasks = (draggedId: string, targetId: string | null) => {
-    setTasks(prevTasks => {
-      const newTasks = [...prevTasks];
-      const draggedItemIndex = newTasks.findIndex(task => task.id === draggedId);
-
-      if (draggedItemIndex === -1) return prevTasks; // Dragged item not found
-
-      const [draggedItem] = newTasks.splice(draggedItemIndex, 1); // Remove dragged item
-
-      if (targetId === null) {
-        // If targetId is null, append to the end of the list
-        newTasks.push(draggedItem);
-      } else {
-        // If targetId is provided, find its index and insert before it
-        const targetItemIndex = newTasks.findIndex(task => task.id === targetId);
-        if (targetItemIndex === -1) { 
-          // Target item not found (should not happen if logic is correct, but good to handle)
-          // Fallback: add to the end or put it back to its original position
-          newTasks.push(draggedItem); // Or you could re-insert at draggedItemIndex if that's safer
-          return newTasks; // Or handle error
-        }
-        newTasks.splice(targetItemIndex, 0, draggedItem); // Insert before target
+      if (oldIndex === -1 || newIndex === -1) {
+        // Should not happen if IDs are correct and TaskList sends valid ones
+        console.warn("Task reordering failed: one or both IDs not found.", { draggedId, targetId });
+        return prevTasks; 
       }
-      return newTasks;
+      // If draggedId is the same as targetId, no move is needed, but arrayMove handles this fine.
+      return arrayMove(prevTasks, oldIndex, newIndex);
     });
   };
-
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 py-8 transition-colors duration-300">
@@ -183,7 +168,7 @@ const App: React.FC = () => {
             onPauseTimer={pauseTimer}
             onResetTimer={resetTimer}
             onSetTaskTimerStatus={setTaskTimerStatus}
-            onDeleteTask={deleteTask}
+            onActualDeleteTask={deleteTask} // Changed prop name
             onReorderTasks={reorderTasks}
             draggingItemId={draggingItemId}
             setDraggingItemId={setDraggingItemId}
