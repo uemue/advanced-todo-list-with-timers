@@ -183,7 +183,7 @@ const App: React.FC = () => {
             onPauseTimer={pauseTimer}
             onResetTimer={resetTimer}
             onSetTaskTimerStatus={setTaskTimerStatus}
-            onDeleteTask={deleteTask}
+            onActualDeleteTask={deleteTask}
             onReorderTasks={reorderTasks}
             draggingItemId={draggingItemId}
             setDraggingItemId={setDraggingItemId}
