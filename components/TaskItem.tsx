@@ -129,8 +129,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   }
                   ${
                     isDragging
-                      ? 'opacity-5' // Or 'opacity-0'
-                      // Removed: ring-2 ring-primary-500 motion-safe:scale-105
+                      ? 'opacity-0 !h-0 !p-0 !my-0 !border-0 overflow-hidden motion-safe:!scale-100'
                       : 'motion-safe:scale-100'
                   }
                   ${
