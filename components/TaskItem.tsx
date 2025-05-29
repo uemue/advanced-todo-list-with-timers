@@ -120,7 +120,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         marginBottom: isDeleting ? '0px' : undefined,
         boxShadow: isDeleting ? 'none' : undefined,
       }}
-      className={`group flex items-center justify-between rounded-lg shadow-md
+      className={`group flex md:flex-row flex-col items-start md:items-center md:justify-between rounded-lg shadow-md
                   hover:shadow-lg 
                   ${
                     task.isCompleted
@@ -149,7 +149,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     >
       {/* Inner container to prevent content from collapsing immediately due to parent's padding/margin changes during delete animation */}
       <div
-        className={`flex items-center flex-grow ${
+        className={`flex items-center w-full md:flex-grow ${
           isDeleting ? 'motion-safe:opacity-0' : 'opacity-100'
         } motion-safe:transition-opacity motion-safe:duration-150`}
       >
@@ -181,7 +181,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           )}
         </button>
         <span
-          className={`flex-grow transition-all duration-300 ${
+          className={`w-full md:flex-grow truncate md:whitespace-normal md:overflow-visible transition-all duration-300 ${
             task.isCompleted
               ? 'line-through text-gray-500 dark:text-gray-400'
               : 'text-gray-800 dark:text-gray-100'
@@ -191,7 +191,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </span>
       </div>
 
-      <div className='flex items-center space-x-2 ml-4'>
+      <div className='w-full flex items-center justify-between mt-3 md:mt-0 md:ml-4 md:w-auto space-x-2'>
         <TimerDisplay task={task} />
         {!task.isCompleted && (
           <>
