@@ -74,9 +74,43 @@ const App: React.FC = () => {
 
   const toggleTaskComplete = (taskId: string) => {
     setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, isCompleted: !task.isCompleted, timerStatus: task.isCompleted ? TimerStatus.IDLE : task.timerStatus, timerStartTime: task.isCompleted ? null : task.timerStartTime } : task
-      )
+      prevTasks.map(task => {
+        if (task.id === taskId) {
+          const isCurrentlyCompleted = task.isCompleted;
+          
+          if (!isCurrentlyCompleted) {
+            // Task is being marked as complete
+            // If timer is running, preserve the accumulated time including current interval
+            if (task.timerStartTime && (task.timerStatus === TimerStatus.RUNNING || task.timerStatus === TimerStatus.FINISHED)) {
+              const elapsedInCurrentInterval = Date.now() - task.timerStartTime;
+              return {
+                ...task,
+                isCompleted: true,
+                timerStatus: TimerStatus.IDLE,
+                accumulatedTime: task.accumulatedTime + elapsedInCurrentInterval,
+                timerStartTime: null
+              };
+            } else {
+              // Timer not running, just mark as complete
+              return {
+                ...task,
+                isCompleted: true,
+                timerStatus: TimerStatus.IDLE,
+                timerStartTime: null
+              };
+            }
+          } else {
+            // Task is being marked as incomplete - reset timer state
+            return {
+              ...task,
+              isCompleted: false,
+              timerStatus: TimerStatus.IDLE,
+              timerStartTime: null
+            };
+          }
+        }
+        return task;
+      })
     );
   };
 
