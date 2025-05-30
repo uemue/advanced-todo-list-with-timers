@@ -156,7 +156,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       ? 'motion-safe:opacity-0 motion-safe:scale-90 overflow-hidden !p-0 !mb-0'
                       : ''
                   }
-                  motion-safe:transition-all motion-safe:duration-300 ease-in-out
                   motion-reduce:transition-none
                   p-4 mb-3 
                   `}
