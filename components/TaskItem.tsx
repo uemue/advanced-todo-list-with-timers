@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Task, TimerStatus } from '../types';
 import { TimerDisplay } from './TimerDisplay';
 import {
@@ -119,7 +120,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   return (
-    <div
+    <motion.div
+      layout="position" // Added for Framer Motion reordering animation
+      key={task.id} // Ensure key is on the motion component for AnimatePresence
       draggable // Added draggable attribute
       onDragStart={handleDragStart} // Added onDragStart handler
       onDragEnd={(e) => onDragEnd(e as any)} // Added onDragEnd handler
@@ -245,6 +248,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <TrashIcon />
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };
