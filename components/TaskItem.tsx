@@ -42,6 +42,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(!isNewlyAdded); // Start invisible if newly added
+  const [isCollapsingForDrag, setIsCollapsingForDrag] = React.useState(false);
 
   useEffect(() => {
     if (isNewlyAdded) {
@@ -61,6 +62,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       return () => clearTimeout(timer);
     }
   }, [isDeleting, task.id, onActualDeleteTask]);
+
+  useEffect(() => {
+    if (!isDragging) {
+      setIsCollapsingForDrag(false);
+    }
+  }, [isDragging]);
 
   useEffect(() => {
     let logicIntervalId: number | undefined = undefined;
@@ -97,8 +104,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   ]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    console.log('TaskItem handleDragStart for task:', task.id);
-    onDragStart(e, task.id); // Cast removed, type updated
+    // console.log('TaskItem handleDragStart for task:', task.id); // Original console log
+    onDragStart(e, task.id); // Call prop
+    // Delay setting the collapsing state
+    setTimeout(() => {
+      setIsCollapsingForDrag(true);
+    }, 0); // 0ms timeout defers execution to the next event loop tick
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -128,7 +139,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60'
                   }
                   ${
-                    isDragging
+                    isCollapsingForDrag // Changed from isDragging
                       ? 'opacity-0 !h-0 !p-0 !my-0 !border-0 overflow-hidden motion-safe:!scale-100'
                       : 'motion-safe:scale-100'
                   }
