@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Task, TimerStatus } from '../types';
 import { TimerDisplay } from './TimerDisplay';
 import {
@@ -42,6 +43,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(!isNewlyAdded); // Start invisible if newly added
+  const [isCollapsingForDrag, setIsCollapsingForDrag] = React.useState(false);
 
   useEffect(() => {
     if (isNewlyAdded) {
@@ -61,6 +63,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       return () => clearTimeout(timer);
     }
   }, [isDeleting, task.id, onActualDeleteTask]);
+
+  useEffect(() => {
+    if (!isDragging) {
+      setIsCollapsingForDrag(false);
+    }
+  }, [isDragging]);
 
   useEffect(() => {
     let logicIntervalId: number | undefined = undefined;
@@ -96,9 +104,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onSetTaskTimerStatus,
   ]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
-    console.log('TaskItem handleDragStart for task:', task.id);
-    onDragStart(e as any, task.id); // Cast to match expected type
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    // console.log('TaskItem handleDragStart for task:', task.id); // Original console log
+    onDragStart(e, task.id); // Call prop
+    // Delay setting the collapsing state
+    setTimeout(() => {
+      setIsCollapsingForDrag(true);
+    }, 0); // 0ms timeout defers execution to the next event loop tick
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -108,7 +120,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   return (
-    <div
+    <motion.div
+      layout="position" // Added for Framer Motion reordering animation
+      key={task.id} // Ensure key is on the motion component for AnimatePresence
+      draggable // Added draggable attribute
+      onDragStart={handleDragStart} // Added onDragStart handler
+      onDragEnd={(e) => onDragEnd(e as any)} // Added onDragEnd handler
       onDragOver={handleDragOver}
       style={{
         maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
@@ -125,8 +142,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60'
                   }
                   ${
-                    isDragging
-                      ? 'opacity-75 ring-2 ring-primary-500 motion-safe:scale-105'
+                    isCollapsingForDrag // Changed from isDragging
+                      ? 'opacity-0 !h-0 !p-0 !my-0 !border-0 overflow-hidden motion-safe:!scale-100'
                       : 'motion-safe:scale-100'
                   }
                   ${
@@ -139,7 +156,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       ? 'motion-safe:opacity-0 motion-safe:scale-90 overflow-hidden !p-0 !mb-0'
                       : ''
                   }
-                  motion-safe:transition-all motion-safe:duration-300 ease-in-out
                   motion-reduce:transition-none
                   p-4 mb-3 
                   `}
@@ -151,10 +167,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         } motion-safe:transition-opacity motion-safe:duration-150`}
       >
         <button
-          draggable
-          onDragStart={handleDragStart}
-          onDragEnd={(e) => onDragEnd(e as any)}
-          onClick={(e) => e.preventDefault()} // Prevent click when dragging
+          // draggable removed
+          // onDragStart removed
+          // onDragEnd removed
+          // onClick removed
           className='group/handle cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400'
           aria-label='Drag to reorder task'
         >
@@ -231,6 +247,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <TrashIcon />
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };

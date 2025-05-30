@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Task, TimerStatus } from '../types';
 import { TaskItem } from './TaskItem';
 
@@ -56,6 +57,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     console.log('handleDragStart called with taskId:', taskId);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', taskId);
+    // Set custom drag image
+    if (event.currentTarget) { // Check if currentTarget is available
+      event.dataTransfer.setDragImage(event.currentTarget, 10, 10);
+    }
     setDraggingItemId(taskId);
     // setDropTargetIndex(null); // Clear any previous placeholder
   };
@@ -117,11 +122,16 @@ export const TaskList: React.FC<TaskListProps> = ({
   };
   
   const Placeholder = () => (
-    <div 
-      key={PLACEHOLDER_ID} 
-      className="h-16 border-2 border-dashed border-primary-500 dark:border-primary-400 rounded-lg my-2 opacity-75 transition-all duration-150"
+    <motion.div
+      layout="position"
+      key={PLACEHOLDER_ID}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: '4rem' }} // h-16 is 4rem
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="border-2 border-dashed border-primary-500 dark:border-primary-400 rounded-lg my-2 opacity-75" // Removed h-16, transition-all, duration-150. Height is handled by animate.
       aria-hidden="true"
-    ></div>
+    ></motion.div>
   );
 
   if (tasks.length === 0 && !draggingItemId) { // Also check draggingItemId to show placeholder in empty list
@@ -170,22 +180,17 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   return (
     <div className="mt-6" 
-         onDragLeave={handleDragLeaveList} 
+         onDragLeave={handleDragLeaveList}
          onDragOver={(e) => {
-            // This onDragOver on the list itself is to handle dragging over empty space
-            // or to set a default drop index (e.g., end of list) if not over any item.
             e.preventDefault();
             if (tasks.length === 0 && draggingItemId) {
-                setDropTargetIndex(0); // Allow dropping into an empty list
+                setDropTargetIndex(0); 
             }
-            // Potentially, if not over any specific item but over the list,
-            // you could set dropTargetIndex to tasks.length (to drop at the end).
-            // However, this might conflict with handleTaskItemDragOver.
-            // The current logic relies on handleTaskItemDragOver for precise positioning.
-            // handleDragLeaveList will clear it if we drag out.
          }}
          onDrop={handleDrop}>
-      {itemsWithPlaceholder}
+      <AnimatePresence initial={false} mode='popLayout'>
+        {itemsWithPlaceholder}
+      </AnimatePresence>
     </div>
   );
 };
