@@ -75,13 +75,9 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({ task }) => {
   }
 
   if (task.isCompleted) {
-    // Show final recorded time if completed.
+    // Show elapsed time if completed.
     const finalTimeSeconds = Math.floor(task.accumulatedTime / 1000);
-    if (finalTimeSeconds < task.estimatedDuration) {
-        displayTime = formatTime(task.estimatedDuration - finalTimeSeconds);
-    } else {
-        displayTime = `+${formatTime(finalTimeSeconds - task.estimatedDuration)}`;
-    }
+    displayTime = formatTime(finalTimeSeconds);
     timerColor = "text-green-600 dark:text-green-400";
   }
 
