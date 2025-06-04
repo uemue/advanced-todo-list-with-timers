@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Task, TimerStatus, NotificationMessage } from './types';
+import { useScreenWakeLock } from './hooks/useScreenWakeLock';
 import { AddTaskForm } from './components/AddTaskForm';
 import { TaskList } from './components/TaskList';
 import { Notification } from './components/Notification';
@@ -20,6 +21,11 @@ const App: React.FC = () => {
      }
      return false;
   });
+
+  const anyTimerRunning = tasks.some(
+    t => t.timerStatus === TimerStatus.RUNNING || t.timerStatus === TimerStatus.FINISHED
+  );
+  useScreenWakeLock(anyTimerRunning);
 
   useEffect(() => {
     localStorage.setItem('todoTasks', JSON.stringify(tasks));

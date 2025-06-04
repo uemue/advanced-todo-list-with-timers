@@ -29,3 +29,4 @@ This contains everything you need to run your app locally.
 - **User Experience:**
     - Dark mode support, with a toggle and detection of system preference.
     - Notifications for events like timer completion.
+    - Uses the Screen Wake Lock API to keep the screen on while a timer is running (falls back gracefully if unsupported).
