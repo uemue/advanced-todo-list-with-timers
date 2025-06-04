@@ -5,6 +5,7 @@ import { AddTaskForm } from './components/AddTaskForm';
 import { TaskList } from './components/TaskList';
 import { Notification } from './components/Notification';
 import { MoonIcon, SunIcon } from './components/icons';
+import { playBeep } from './utils/beep';
 
 const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(() => {
@@ -38,9 +39,10 @@ const App: React.FC = () => {
     setDarkMode(!darkMode);
   };
 
-  const showAppNotification = (message: string, taskId: string) => {
+const showAppNotification = (message: string, taskId: string) => {
     setNotification({ id: Date.now().toString(), message, taskId });
-  };
+    playBeep();
+};
 
   const dismissNotification = () => {
     setNotification(null);
