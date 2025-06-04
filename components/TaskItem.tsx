@@ -125,7 +125,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       key={task.id} // Ensure key is on the motion component for AnimatePresence
       draggable // Added draggable attribute
       onDragStart={handleDragStart} // Added onDragStart handler
-      onDragEnd={onDragEnd} // Pass drag event directly
+      onDragEnd={onDragEnd} // Directly pass the drag event
       onDragOver={handleDragOver}
       style={{
         maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
