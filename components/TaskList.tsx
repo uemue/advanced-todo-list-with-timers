@@ -54,7 +54,6 @@ export const TaskList: React.FC<TaskListProps> = ({
 
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, taskId: string) => {
-    console.log('handleDragStart called with taskId:', taskId);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', taskId);
     // Set custom drag image
@@ -84,23 +83,18 @@ export const TaskList: React.FC<TaskListProps> = ({
     
     // Optimization: only update state if the index actually changes
     if (newDropIndex !== dropTargetIndex) {
-        console.log('Setting dropTargetIndex to:', newDropIndex, 'for taskId:', taskId);
         setDropTargetIndex(newDropIndex);
     }
   };
   
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    console.log('handleDrop called with dropTargetIndex:', dropTargetIndex);
     event.preventDefault();
     event.stopPropagation();
     const draggedTaskId = event.dataTransfer.getData('text/plain');
-    console.log('draggedTaskId:', draggedTaskId);
     
     if (draggedTaskId && dropTargetIndex !== null) {
-        console.log('dropTargetIndex:', dropTargetIndex);
         
         const targetTask = tasks[dropTargetIndex];
-        console.log('targetTask:', targetTask?.id ?? 'null');
         // If dropTargetIndex is tasks.length or beyond, targetTask will be undefined.
         // This means dropping at the end. onReorderTasks needs to handle targetId: null
         onReorderTasks(draggedTaskId, targetTask?.id ?? null);

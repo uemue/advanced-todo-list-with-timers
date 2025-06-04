@@ -105,7 +105,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   ]);
 
   const handleDragStart = (e: any) => {
-    // console.log('TaskItem handleDragStart for task:', task.id); // Original console log
     onDragStart(e, task.id); // Call prop
     // Delay setting the collapsing state
     setTimeout(() => {
@@ -114,7 +113,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    console.log('TaskItem handleDragOver for task:', task.id);
     e.preventDefault(); // This is crucial for drop to work
     onDragOver(e);
   };
