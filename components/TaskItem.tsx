@@ -22,9 +22,9 @@ interface TaskItemProps {
   onActualDeleteTask: (taskId: string) => void; // Renamed, actual function to remove from state
   isNewlyAdded?: boolean; // Optional: for entry animation
   isDragging: boolean;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>, taskId: string) => void;
+  onDragStart: (event: any, taskId: string) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void; // Only preventDefault
-  onDragEnd: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd: (event: any) => void;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -104,7 +104,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onSetTaskTimerStatus,
   ]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (e: any) => {
     onDragStart(e, task.id); // Call prop
     // Delay setting the collapsing state
     setTimeout(() => {
@@ -123,7 +123,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       key={task.id} // Ensure key is on the motion component for AnimatePresence
       draggable // Added draggable attribute
       onDragStart={handleDragStart} // Added onDragStart handler
-      onDragEnd={(e) => onDragEnd(e as any)} // Added onDragEnd handler
+      onDragEnd={onDragEnd} // Directly pass the drag event
       onDragOver={handleDragOver}
       style={{
         maxHeight: isDeleting ? '0px' : '200px', // Estimate a large enough max-height for transition
