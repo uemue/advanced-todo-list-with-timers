@@ -178,11 +178,8 @@ const App: React.FC = () => {
 
 
   const reorderTasks = (draggedId: string, targetId: string | null) => {
-    console.log('reorderTasks called:', { draggedId, targetId });
     setTasks(prevTasks => {
       const draggedItemIndex = prevTasks.findIndex(task => task.id === draggedId);
-      console.log('Previous tasks:', prevTasks.map(t => ({ id: t.id, text: t.text })));
-      console.log('draggedItemIndex:', draggedItemIndex);
 
       if (draggedItemIndex === -1) return prevTasks; // Dragged item not found
 
@@ -195,22 +192,18 @@ const App: React.FC = () => {
       if (targetId === null) {
         // If targetId is null, move to the end of the list
         newTasks.push(draggedItem);
-        console.log('Moving to end, new order:', newTasks.map(t => ({ id: t.id, text: t.text })));
         return newTasks;
       } else {
         // If targetId is provided, find its index in the new array and insert before it
         const targetItemIndex = newTasks.findIndex(task => task.id === targetId);
-        console.log('targetItemIndex in new array:', targetItemIndex);
         if (targetItemIndex === -1) { 
           // Target item not found, fallback to end
           newTasks.push(draggedItem);
-          console.log('Target not found, moving to end:', newTasks.map(t => ({ id: t.id, text: t.text })));
           return newTasks;
         }
         
         // Insert before target
         newTasks.splice(targetItemIndex, 0, draggedItem);
-        console.log('New task order:', newTasks.map(t => ({ id: t.id, text: t.text })));
         return newTasks;
       }
     });
