@@ -109,7 +109,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     setDropTargetIndex(null);
   };
 
-  const handleDragEnd = (_event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragEnd = (_event: any) => {
     setDraggingItemId(null);
     setDropTargetIndex(null);
   };
