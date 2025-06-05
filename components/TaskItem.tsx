@@ -71,10 +71,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   }, [isDragging]);
 
   useEffect(() => {
-    let logicIntervalId: number | undefined = undefined;
+    let intervalId: number | null = null;
 
     if (task.timerStatus === TimerStatus.RUNNING) {
-      logicIntervalId = window.setInterval(() => {
+      intervalId = window.setInterval(() => {
         const now = Date.now();
         const effectiveElapsedTimeMs =
           task.accumulatedTime +
@@ -86,13 +86,17 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         if (effectiveElapsedTimeInSeconds >= task.estimatedDuration) {
           // onSetTaskTimerStatus will handle the notification trigger in App.tsx
           onSetTaskTimerStatus(task.id, TimerStatus.FINISHED);
-          if (logicIntervalId) clearInterval(logicIntervalId); // Stop checking once finished
+          if (intervalId !== null) {
+            clearInterval(intervalId); // Stop checking once finished
+          }
         }
       }, 250); // Check 4 times a second for responsiveness
     }
 
     return () => {
-      if (logicIntervalId) clearInterval(logicIntervalId);
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
