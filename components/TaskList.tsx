@@ -110,7 +110,8 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleDragLeaveList = (event: React.DragEvent<HTMLDivElement>) => {
     // Check if the mouse is leaving the list container towards an unrelated element
-    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+    const relatedTarget = event.relatedTarget as Node | null;
+    if (relatedTarget && !event.currentTarget.contains(relatedTarget)) {
         setDropTargetIndex(null);
     }
   };
