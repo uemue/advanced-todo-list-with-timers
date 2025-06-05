@@ -9,8 +9,8 @@ interface NotificationProps {
 
 import { CheckCircleIcon } from './icons'; // Assuming CheckCircleIcon is available
 
-const ANIMATION_DURATION = 300; // ms
-const AUTO_DISMISS_DURATION = 5000; // ms
+export const ANIMATION_DURATION = 300; // ms
+export const AUTO_DISMISS_DURATION = 5000; // ms
 
 export const Notification: React.FC<NotificationProps> = ({ notification, onDismiss }) => {
   const [show, setShow] = React.useState(false);
