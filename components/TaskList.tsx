@@ -37,19 +37,26 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   React.useEffect(() => {
     const newTasks = tasks.filter(task => !prevTasksRef.current.find(pt => pt.id === task.id));
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+
     if (newTasks.length > 0) {
       const newIds = newTasks.map(t => t.id);
       setNewlyAddedTaskIds(currentIds => [...currentIds, ...newIds]);
+
       newIds.forEach(id => {
         // Duration should be slightly longer than animation
         const timer = setTimeout(() => {
           setNewlyAddedTaskIds(currentIds => currentIds.filter(currentId => currentId !== id));
         }, 350); // Animation duration is 300ms
-        // Cleanup timeout if component unmounts or tasks change causing re-run
-        return () => clearTimeout(timer);
+        timeouts.push(timer);
       });
     }
+
     prevTasksRef.current = tasks;
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
   }, [tasks]);
 
 
