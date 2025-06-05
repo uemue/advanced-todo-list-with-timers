@@ -164,16 +164,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           isDeleting ? 'motion-safe:opacity-0' : 'opacity-100'
         } motion-safe:transition-opacity motion-safe:duration-150`}
       >
-        <button
-          // draggable removed
-          // onDragStart removed
-          // onDragEnd removed
-          // onClick removed
+        <div
           className='group/handle cursor-grab p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400'
           aria-label='Drag to reorder task'
         >
           <Bars3Icon className='transition-transform duration-150 group-hover/handle:scale-110' />
-        </button>
+        </div>
         <button
           onClick={() => onToggleComplete(task.id)}
           className={`mr-3 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-gray-800 transition-colors duration-200
