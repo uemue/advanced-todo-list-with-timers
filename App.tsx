@@ -108,11 +108,13 @@ const showAppNotification = (message: string, taskId: string) => {
               };
             }
           } else {
-            // Task is being marked as incomplete - reset timer state
+            // Task is being marked as incomplete
+            // If there is accumulated time, preserve it and show remaining time
             return {
               ...task,
               isCompleted: false,
-              timerStatus: TimerStatus.IDLE,
+              timerStatus:
+                task.accumulatedTime > 0 ? TimerStatus.PAUSED : TimerStatus.IDLE,
               timerStartTime: null
             };
           }
