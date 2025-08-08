@@ -10,6 +10,7 @@ interface TaskListProps {
   onStartTimer: (taskId: string) => void;
   onPauseTimer: (taskId: string) => void;
   onResetTimer: (taskId: string) => void;
+  onUpdateTask?: (taskId: string, updates: Partial<Pick<Task, 'text' | 'estimatedDuration'>>) => void;
   onSetTaskTimerStatus: (taskId: string, status: TimerStatus) => void;
   onActualDeleteTask: (taskId: string) => void; // Renamed from onDeleteTask for clarity
   onReorderTasks: (draggedId: string, targetId: string | null) => void; // targetId can be null for dropping at the end
@@ -25,12 +26,15 @@ export const TaskList: React.FC<TaskListProps> = ({
   onStartTimer,
   onPauseTimer,
   onResetTimer,
+  onUpdateTask,
   onSetTaskTimerStatus,
   onActualDeleteTask, // Renamed
   onReorderTasks,
   draggingItemId,
   setDraggingItemId
 }) => {
+  const noop = () => {};
+  const updateTask = onUpdateTask ?? noop;
   const [dropTargetIndex, setDropTargetIndex] = React.useState<number | null>(null);
   const [newlyAddedTaskIds, setNewlyAddedTaskIds] = React.useState<string[]>([]);
   const prevTasksRef = React.useRef<Task[]>(tasks);
@@ -154,6 +158,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         onStartTimer={onStartTimer}
         onPauseTimer={onPauseTimer}
         onResetTimer={onResetTimer}
+        onUpdateTask={updateTask}
         onSetTaskTimerStatus={onSetTaskTimerStatus}
         // onDeleteTask prop of TaskItem will trigger its internal animation sequence
         // onActualDeleteTask is the function from App.tsx to remove from state

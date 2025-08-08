@@ -128,6 +128,25 @@ const showAppNotification = (message: string, taskId: string) => {
     setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
   };
 
+  const updateTask = (taskId: string, updates: Partial<Pick<Task, 'text' | 'estimatedDuration'>>) => {
+    setTasks(prevTasks => prevTasks.map(task => {
+      if (task.id !== taskId) return task;
+      const next: Task = { ...task, ...updates };
+      // If duration decreased below elapsed while running, optionally flag FINISHED
+      if (
+        typeof updates.estimatedDuration === 'number' &&
+        (task.timerStatus === TimerStatus.RUNNING || task.timerStatus === TimerStatus.FINISHED)
+      ) {
+        const now = Date.now();
+        const effectiveElapsed = task.accumulatedTime + (task.timerStartTime ? now - task.timerStartTime : 0);
+        if (Math.floor(effectiveElapsed / 1000) >= updates.estimatedDuration) {
+          next.timerStatus = TimerStatus.FINISHED;
+        }
+      }
+      return next;
+    }));
+  };
+
   const startTimer = (taskId: string) => {
     setTasks(prevTasks =>
       prevTasks.map(task => {
@@ -244,6 +263,7 @@ const showAppNotification = (message: string, taskId: string) => {
             onStartTimer={startTimer}
             onPauseTimer={pauseTimer}
             onResetTimer={resetTimer}
+            onUpdateTask={updateTask}
             onSetTaskTimerStatus={setTaskTimerStatus}
             onActualDeleteTask={deleteTask}
             onReorderTasks={reorderTasks}

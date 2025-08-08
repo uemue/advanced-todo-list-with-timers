@@ -10,6 +10,7 @@ import {
   CircleIcon,
   Bars3Icon,
   TrashIcon,
+  PencilIcon,
 } from './icons';
 
 interface TaskItemProps {
@@ -18,6 +19,7 @@ interface TaskItemProps {
   onStartTimer: (taskId: string) => void;
   onPauseTimer: (taskId: string) => void;
   onResetTimer: (taskId: string) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'estimatedDuration'>>) => void;
   onSetTaskTimerStatus: (taskId: string, status: TimerStatus) => void; // For internal status changes like FINISHED
   onActualDeleteTask: (taskId: string) => void; // Renamed, actual function to remove from state
   isNewlyAdded?: boolean; // Optional: for entry animation
@@ -33,6 +35,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onStartTimer,
   onPauseTimer,
   onResetTimer,
+  onUpdateTask,
   onSetTaskTimerStatus,
   onActualDeleteTask,
   isNewlyAdded = false, // Default to false
@@ -44,6 +47,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(!isNewlyAdded); // Start invisible if newly added
   const [isCollapsingForDrag, setIsCollapsingForDrag] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editText, setEditText] = React.useState(task.text);
+  const [editMinutes, setEditMinutes] = React.useState<string>(
+    Math.max(1, Math.round(task.estimatedDuration / 60)).toString()
+  );
+  const [textError, setTextError] = React.useState<string | null>(null);
+  const [durationError, setDurationError] = React.useState<string | null>(null);
 
   useEffect(() => {
     if (isNewlyAdded) {
@@ -121,6 +131,41 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     onDragOver(e);
   };
 
+  const handleEnterEdit = () => {
+    setIsEditing(true);
+    setEditText(task.text);
+    setEditMinutes(Math.max(1, Math.round(task.estimatedDuration / 60)).toString());
+    setTextError(null);
+    setDurationError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setTextError(null);
+    setDurationError(null);
+  };
+
+  const handleSaveEdit = () => {
+    let valid = true;
+    const trimmed = editText.trim();
+    if (!trimmed) {
+      setTextError('Task description cannot be empty.');
+      valid = false;
+    } else {
+      setTextError(null);
+    }
+    const minutes = parseInt(editMinutes, 10);
+    if (!editMinutes.trim() || isNaN(minutes) || minutes <= 0) {
+      setDurationError('Please enter a valid positive number for duration.');
+      valid = false;
+    } else {
+      setDurationError(null);
+    }
+    if (!valid) return;
+    onUpdateTask(task.id, { text: trimmed, estimatedDuration: minutes * 60 });
+    setIsEditing(false);
+  };
+
   return (
     <motion.div
       layout="position" // Added for Framer Motion reordering animation
@@ -194,20 +239,58 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <CircleIcon className='w-6 h-6 transition-all duration-300 ease-in-out transform' />
           )}
         </button>
-        <span
-          className={`w-full md:flex-grow truncate md:whitespace-normal md:overflow-visible transition-all duration-300 ${
-            task.isCompleted
-              ? 'line-through text-gray-500 dark:text-gray-400'
-              : 'text-gray-800 dark:text-gray-100'
-          }`}
-        >
-          {task.text}
-        </span>
+        {isEditing ? (
+          <div className="flex flex-col gap-2 w-full md:flex-grow">
+            <div>
+              <input
+                aria-label="Edit task text"
+                type="text"
+                value={editText}
+                onChange={(e) => {
+                  setEditText(e.target.value);
+                  if (textError) setTextError(null);
+                }}
+                className={`w-full p-2 rounded-md border bg-gray-50 text-gray-900 placeholder-gray-500 dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-400 ${textError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 dark:border-slate-700 focus:border-primary-500'} focus:ring-2 focus:ring-primary-500`}
+                placeholder="Edit task text"
+              />
+              <p className="text-red-500 text-sm mt-1 h-5" aria-live="polite">{textError || ''}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                aria-label="Edit estimated minutes"
+                type="number"
+                min={1}
+                value={editMinutes}
+                onChange={(e) => {
+                  setEditMinutes(e.target.value);
+                  if (durationError) setDurationError(null);
+                }}
+                className={`w-32 p-2 rounded-md border bg-gray-50 text-gray-900 placeholder-gray-500 dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-400 ${durationError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 dark:border-slate-700 focus:border-primary-500'} focus:ring-2 focus:ring-primary-500`}
+                placeholder="Minutes"
+              />
+              <div className="flex gap-2 ml-auto">
+                <button onClick={handleSaveEdit} className="px-3 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Save changes">Save</button>
+                <button onClick={handleCancelEdit} className="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400" aria-label="Cancel edit">Cancel</button>
+              </div>
+            </div>
+            <p className="text-red-500 text-sm mt-1 h-5" aria-live="polite">{durationError || ''}</p>
+          </div>
+        ) : (
+          <span
+            className={`w-full md:flex-grow truncate md:whitespace-normal md:overflow-visible transition-all duration-300 ${
+              task.isCompleted
+                ? 'line-through text-gray-500 dark:text-gray-400'
+                : 'text-gray-800 dark:text-gray-100'
+            }`}
+          >
+            {task.text}
+          </span>
+        )}
       </div>
 
       <div className='w-full flex items-center justify-between mt-3 md:mt-0 md:ml-4 md:w-auto space-x-2'>
         <TimerDisplay task={task} />
-        {!task.isCompleted && (
+        {!task.isCompleted && !isEditing && (
           <>
             {task.timerStatus === TimerStatus.RUNNING ||
             task.timerStatus === TimerStatus.FINISHED ? (
@@ -235,6 +318,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <RefreshIcon />
             </button>
           </>
+        )}
+        {!isEditing && (
+          <button
+            onClick={handleEnterEdit}
+            className='p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500'
+            aria-label='Edit task'
+          >
+            <PencilIcon />
+          </button>
         )}
         <button
           onClick={() => setIsDeleting(true)} // Initiate deletion animation
